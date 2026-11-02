@@ -1,0 +1,206 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasificador de Cáncer de Mama</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f4f6f9;
+        }
+
+        h1 { color: #263b5e; }
+
+        #formulario {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        label { font-size: 13px; color: #333; }
+
+        input {
+            width: 95%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: #245b91;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #resultado {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .aviso { color: #8b3030; font-size: 13px; }
+    </style>
+</head>
+
+<body>
+
+<h1>Clasificación de Cáncer de Mama</h1>
+
+<p>Ingresa los valores de las variables del modelo.</p>
+
+<button type="button" onclick="cargarDatosPrueba()">
+    Cargar datos de prueba
+</button>
+
+<form id="formulario"></form>
+
+<button type="button" onclick="predecir()">
+    Realizar predicción
+</button>
+
+<div id="resultado"></div>
+
+<p class="aviso">
+    Herramienta educativa. No utilizar para diagnóstico
+    ni decisiones clínicas.
+</p>
+
+<script>
+
+let variables = [];
+
+// Obtener las 30 variables desde la API
+async function cargarVariables() {
+    const respuesta = await fetch("/features");
+    const resultado = await respuesta.json();
+
+    variables = resultado.variables;
+
+    const formulario = document.getElementById("formulario");
+
+    variables.forEach(variable => {
+        const contenedor = document.createElement("div");
+
+        const etiqueta = document.createElement("label");
+        etiqueta.textContent = variable;
+
+        const campo = document.createElement("input");
+        campo.type = "number";
+        campo.step = "any";
+        campo.required = true;
+        campo.id = variable;
+        campo.name = variable;
+
+        contenedor.appendChild(etiqueta);
+        contenedor.appendChild(campo);
+
+        formulario.appendChild(contenedor);
+    });
+}
+
+// Datos ficticios para probar el modelo
+function cargarDatosPrueba() {
+    const datos = {
+        "mean radius": 14.0,
+        "mean texture": 20.0,
+        "mean perimeter": 90.0,
+        "mean area": 600.0,
+        "mean smoothness": 0.10,
+        "mean compactness": 0.10,
+        "mean concavity": 0.08,
+        "mean concave points": 0.05,
+        "mean symmetry": 0.18,
+        "mean fractal dimension": 0.06,
+        "radius error": 0.30,
+        "texture error": 1.0,
+        "perimeter error": 2.0,
+        "area error": 20.0,
+        "smoothness error": 0.007,
+        "compactness error": 0.02,
+        "concavity error": 0.02,
+        "concave points error": 0.01,
+        "symmetry error": 0.02,
+        "fractal dimension error": 0.003,
+        "worst radius": 16.0,
+        "worst texture": 25.0,
+        "worst perimeter": 105.0,
+        "worst area": 800.0,
+        "worst smoothness": 0.14,
+        "worst compactness": 0.20,
+        "worst concavity": 0.18,
+        "worst concave points": 0.08,
+        "worst symmetry": 0.28,
+        "worst fractal dimension": 0.08
+    };
+
+    Object.entries(datos).forEach(([nombre, valor]) => {
+        const campo = document.getElementById(nombre);
+
+        if (campo) {
+            campo.value = valor;
+        }
+    });
+
+    document.getElementById("resultado").textContent =
+        "Datos ficticios cargados correctamente. Ya puedes realizar la prueba.";
+}
+
+// Enviar los datos al modelo
+async function predecir() {
+    const datos = {};
+
+    for (const variable of variables) {
+        const campo = document.getElementById(variable);
+
+        if (campo.value.trim() === "") {
+            alert("Completa todas las variables.");
+            campo.focus();
+            return;
+        }
+
+        const valor = Number(campo.value);
+
+        if (!Number.isFinite(valor)) {
+            alert("Ingresa valores numéricos válidos.");
+            campo.focus();
+            return;
+        }
+
+        datos[variable] = valor;
+    }
+
+    const respuesta = await fetch("/predict", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ datos: datos })
+    });
+
+    const resultado = await respuesta.json();
+
+    document.getElementById("resultado").textContent =
+        respuesta.ok
+        ? `Clasificación: ${resultado.clasificacion} | Probabilidad de malignidad: ${(resultado.probabilidad_maligna * 100).toFixed(2)}%`
+        : `Error: ${JSON.stringify(resultado.detail)}`;
+}
+
+// Inicializar formulario
+cargarVariables();
+
+</script>
+
+</body>
+</html>
+
